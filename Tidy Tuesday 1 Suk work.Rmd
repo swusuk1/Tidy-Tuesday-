@@ -1,0 +1,82 @@
+---
+title: "Tidy Tuesday"
+author: "Samuel W. Suk"
+date: "4/10/2022"
+output: html_document
+---
+
+#Story: Using a _ chart, I want to show what the main threat to bee colonies per state is over the past 6 years, and the percent that it impacts the number of colonies over all other stressors. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(vtable)
+library(tidyverse)
+library(jtools)
+library(fixest)
+library(rdrobust)
+library(margins)
+```
+
+## Importing Data
+Website Link: https://github.com/rfordatascience/tidytuesday/blob/master/data/2022/2022-01-11/readme.md
+```{r, echo=TRUE}
+
+colony <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-11/colony.csv')
+stressor <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-11/stressor.csv')
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Cleaning and Sorting the Data
+```{r}
+vtable(colony)
+vtable(stressor)
+
+# Colony Cleaning
+colonystate <- subset(colony, select=c("state", "colony_n", "colony_lost", "colony_lost_pct"))
+
+
+state_avg <- colonystate %>%
+  filter(!is.na(colonystate)) %>%
+  group_by(state) %>%
+  summarise_at(c("colony_n", "colony_lost", "colony_lost_pct"), mean, na.rm = TRUE)
+
+
+# Stressor Clean
+
+stressor_clean <- stressor %>%
+  filter(!is.na(stress_pct))
+
+stressor_sum <- stressor_clean %>%
+  group_by(state, stressor)%>%
+  summarize(maxstress = max(stress_pct))
+
+stressor_state <- stressor_sum %>%
+  group_by(state) %>%
+  top_n(1, maxstress)
+```
+
+##Joining the Dataframes
+```{r}
+combo_df <- full_join(state_avg, stressor_state, by = 'state', copy= TRUE)
+```
+
+##Visualizations
+```{r}
+visualization1 <- ggplot(data = combo_df, aes(x=maxstress, y= reorder(state, -maxstress), fill = stressor)) + geom_bar(stat = "identity", color = "black", fill = "yellow") + ggtitle("Largest Bee Stressor by State")
+visualization1 + ylab("State") + xlab("Percent of Stress")
+
+visualization2 <- ggplot(data = combo_df, aes(x=maxstress, y= reorder(state, -maxstress), fill = stressor)) + geom_bar(stat = "identity") + ggtitle("Largest Bee Stressor by State") + 
+  scale_fill_manual(values=c("grey",
+                             "Yellow"))
+visualization2 + ylab("State") + xlab("Percent of Stress")
+```

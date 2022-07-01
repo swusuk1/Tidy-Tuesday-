@@ -1,0 +1,118 @@
+---
+title: "Tidy Tuesday 1 & 2"
+author: "Samuel W. Suk"
+date: "5/11/2022"
+output: html_document
+---
+## Story
+
+With the 4 data sets, I would like to express the story of: The change in cost of the different Power Sources 2009 to 2021
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data from Tidy Tuesday 5-3-2022
+
+```{r cars}
+capacity <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-03/capacity.csv')
+wind <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-03/wind.csv')
+solar <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-03/solar.csv')
+average_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-03/average_cost.csv')
+```
+
+## Library
+
+```{r pressure, echo=FALSE}
+library(ggplot2)
+library(dplyr)
+library(vtable)
+library(tidyverse)
+library(jtools)
+library(fixest)
+library(rdrobust)
+library(margins)
+library(GGally)
+library(forcats)
+library(lubridate)
+library(tibble )
+```
+
+## Cleaning
+
+```{r, echo=TRUE}
+vtable::vtable(capacity)
+summary(capacity)
+```
+
+
+## Visualization 1 on the Cost of Energy Sources
+
+```{r, echo=TRUE}
+cost_per_source <- ggplot(average_cost, aes(x= year, y= Cost)) +
+  geom_line(aes(y = solar_mwh), color = "goldenrod1", size = 1.5) +
+  geom_line(aes(y = wind_mwh), color = "mediumturquoise", size = 1.5) +  
+  geom_line(aes(y = gas_mwh), color = "gray44", size = 1.5) + 
+  theme_minimal()+
+  ggtitle("Cost Per Energy Source")+ 
+  theme_classic()
+cost_per_source 
+```
+
+
+## Data from Tidy Tuesday 5-10-2022
+
+```{r, echo=TRUE}
+nyt_titles <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-10/nyt_titles.tsv')
+nyt_full <- readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-10/nyt_full.tsv')
+```
+
+
+## Story: Which authors has the most books inthe New York Times Top Seller List?
+
+## Filtering
+
+```{r, echo=TRUE}
+most_books <- nyt_titles %>%
+  group_by(author) %>%
+  summarise(total_books = n()) %>%
+  slice_max(total_books, n= 10) %>%
+  pull(author)
+most_books <- factor(most_books, levels = most_books)
+most_books
+
+plotting <- nyt_titles %>%
+  select(author, title, year) %>%
+  filter(author %in% most_books) %>%
+  arrange(author, year) %>%
+  group_by(author) %>%
+  mutate(num= row_number(), 
+         author= factor(author, levels = levels(most_books))) %>%
+  select(-year)
+
+total_books <- plotting %>%
+  select(-title) %>%
+  group_by(author) %>%
+  slice_max(num, n=1)
+
+```
+
+
+## Visualization 2
+
+```{r, echo=TRUE}
+books <- ggplot() + 
+  geom_text(data= plotting,
+            mapping = aes(x=author, y= num, label = title),
+            size = 1, color = "black") +
+  geom_text(data = total_books,
+            mapping = aes(x=author, y= num+4, label = num),
+            size = 3, color = "black") +
+  theme(axis.text.x = element_text(angle = -50)) +
+  labs(x="Author",
+       y="Number of Books",
+       title= "New York Times Best Seller List", size = 4)
+books
+
+```
+

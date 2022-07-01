@@ -1,0 +1,95 @@
+---
+title: "Tidy Tueday 3"
+author: "Samuel W. Suk"
+date: "5/27/2022"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+   
+---
+
+## Story
+
+The Eurovision dataset, I would like to express the story of: The change in cost of the different Power Sources 2009 to 2021
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data from Tidy Tuesday 5-17-2022
+
+```{r cars}
+eurovision <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-17/eurovision.csv')
+```
+
+## Library
+
+```{r pressure, echo=FALSE}
+library(ggplot2)
+library(dplyr)
+library(vtable)
+library(tidyverse)
+library(jtools)
+library(fixest)
+library(rdrobust)
+library(margins)
+library(GGally)
+library(forcats)
+library(lubridate)
+library(tibble )
+library(ggiraph)
+library(shiny)
+library(plotly)
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+## Choices on the Song's Artist's Country in the top 5!
+```{r, echo=TRUE}
+selectInput("artist_country", label = "Country where the Artist is From to Analyze:",
+            choices = names(eurovision), selected = 'Albania')
+
+textInput('col1', label = 'Color for Rank 1', value = 'red')
+
+textInput('col2', label = 'Color for Rank 2', value = 'black')
+
+textInput('col3', label = 'Color for Rank 3', value = 'green')
+
+textInput('col4', label = 'Color for Rank 4', value = 'yellow')
+
+textInput('col5', label = 'Color for Rank 5', value = 'pink')
+```
+
+
+Column
+-----------------------------------------------------------------------
+
+## Visualization 1 on the Cost of Energy Sources
+Would show how many songs that were ranked in the top 5 by country
+```{r, echo=TRUE}
+euro <- eurovision %>%
+  group_by(artist_country) %>%
+  count(rank) %>%
+  filter(rank < 5)
+  #mutate(count=n())
+eurog <- ggplot(euro, aes(rank)) +
+  geom_bar()
+eurog
+
+
+```
+##Using Plotly to Count the amount of Songs with a certain Running Order
+
+```{r}
+chart <- eurovision %>%
+  ggplot(aes (x = running_order)) + geom_bar(position = "dodge")+
+  labs(x="Running Order",
+       y="Count",
+       title= "Count of Songs by Running Order")
+
+ggplotly(chart)
+
+```
+
